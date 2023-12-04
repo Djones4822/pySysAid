@@ -4,7 +4,7 @@ import time
 from urllib.parse import quote_plus
 import orjson
 
-class SysAidAPI:
+class Client:
     """
     Simple client that logs in, stores the necessary cookies, and uses those cookies to make requests against the API.
     """
