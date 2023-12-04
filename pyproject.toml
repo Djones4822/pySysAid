@@ -1,0 +1,26 @@
+[build-system]
+requires = [
+    "setuptools>=61.0",
+    "requests",
+    "orjson"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pySysAid"
+version = "0.0.1"
+authors = [
+  { name="David Jones", email="david.jones4822@gmail.com" },
+]
+description = "Simple python library for interacting with SysAid REST API"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/Djones4822/pySysAid"
+Issues = "https://github.com/Djones4822/pySysAid/issues"
