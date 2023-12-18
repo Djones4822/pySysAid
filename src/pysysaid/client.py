@@ -1,4 +1,3 @@
-from fnmatch import fnmatchcase
 import os
 import requests
 import json
