@@ -1,3 +1,4 @@
+from fnmatch import fnmatchcase
 import os
 import requests
 import json
@@ -9,11 +10,7 @@ from logging import getLogger
 
 logger = getLogger(__name__)
 
-def has_protocol(url):
-    """ Helper function to check if a url has an http protocol """
-    pattern = r'^https?://'
-    return bool(re.match(pattern, url))
-
+PROTOCOL_RE_PATTERN = r'^https?://'
 
 class Client:
     """
@@ -41,7 +38,7 @@ class Client:
             self.base_url = f"https://{environment_name}.sysaidit.com/api/v1/"
         
         if base_url:
-            if not has_protocol(base_url):
+            if not bool(re.match(PROTOCOL_RE_PATTERN, base_url)):
                 raise ValueError('base_url must include the http protocol (http:// or https://)')
             self.base_url = f"{base_url.strip('/')}/api/v1/"
 
@@ -87,7 +84,7 @@ class Client:
             else:
                 response.raise_for_status()
 
-    def make_request(self, method, endpoint, params=None, body=None, retry=False):
+    def make_request(self, method, endpoint, params=None, body=None, retry=False, files=None):
         """ 
         Issues a request given the parameters. Will attempt 1 retry if a 401 response (UnAuthorized)
         after trying to log in again.
@@ -97,16 +94,27 @@ class Client:
             if not isinstance(body, str):
                 body = orjson.dumps(body)
         url = self.base_url + endpoint
+
+        req_params = {'cookies': self.cookies, 'headers': headers}
+        if params:
+            req_params['params'] = params
+        if body:
+            req_params['body'] = body
+        if files:
+            req_params['files'] = files
+
         if method.lower() == 'get':
-            response = requests.get(url, params=params, cookies=self.cookies, headers=headers)
+            fn = requests.get
         elif method.lower() == 'post':
-            response = requests.post(url, params=params, data=body, cookies=self.cookies, headers=headers)
+            fn = requests.post
         elif method.lower() == 'put':
-            response = requests.put(url, params=params, data=body, cookies=self.cookies, headers=headers)
+            fn = requests.put
         elif method.lower() == 'delete':
-            response = requests.delete(url, params=params, cookies=self.cookies, headers=headers)
+            fn = requests.delete
         else:
             raise ValueError(f'Unknown method: {method}')
+        
+        response = fn(url, **req_params)
 
         if response.status_code == 200:
             try:
@@ -116,7 +124,7 @@ class Client:
         elif response.status_code == 401:
             if not retry:
                 self.login()
-                return self.make_request(method, endpoint, body, True)
+                return self.make_request(method, endpoint, params, body, True, files)
             else:
                 print(response.text)
                 raise Exception('Could not make authorized request')
@@ -151,41 +159,130 @@ class Client:
         return self.make_request('get', endpoint, params=params)
     
     def count_srs(self, filters=None):
-        raise NotImplementedError
+        params = self.__get_params(locals())
+        endpoint = f"sr/count"
+        return self.make_request('get', endpoint, params=params)
 
-    def close_sr(self, id):
-        raise NotImplementedError
+    def close_sr(self, id, solution):
+        if not isinstance(solution, str):
+            raise TypeError('solution must be a string')
+        endpoint= f'sr/{id}/close'
+        payload = {'solution': solution}
+        return self.make_request('post', endpoint, body=payload)
 
     def get_sr_template(self, view=None, fields=None, type=None, template_id=None):
-        raise NotImplementedError
+        params = self.__get_params(locals())
+        endpoint = f"sr/template"
+        return self.make_request('get', endpoint, params=params)
 
-    def create_sr(self, data, view=None, type=None, template_id=None):
+    def create_sr(self, info, view=None, type='incident', template_id=None):
+        """
+        Method for creating a service request. 
+        
+        See documentatin available at: https://documentation.sysaid.com/docs/rest-api-details#create-service-request
+        """
+        INFO_ERROR = 'info must be a list of dictionaries with `key` and `value` fields'
         if type not in ('incident', 'request', 'problem', 'change', 'all'):
             raise ValueError(f'SR type must be one of: incident, request, problem, change, or all. Not {type}')
-        raise NotImplementedError
+        if not isinstance(info, list):
+            raise TypeError(INFO_ERROR)
+        for i, data in enumerate(info):
+            if not isinstance(data, dict):
+                raise TypeError(INFO_ERROR)
+            if not data.get('key'):
+                raise KeyError(f'Error on info element {i}: missing key `key`')
+            if not data.get('value'):
+                raise KeyError(f'Error on info element {i}: missing key `key`')
+            
+            key = data.get('key')
+            val = data.get('value')
+            if key == 'notes':
+                if not isinstance(val, dict):
+                    raise TypeError('value for `notes` must be a dictionary with keys "userName", "createDate", and "text"')
+                if not isinstance(val['createDate'], int):
+                    raise TypeError('createDate note element must be an integer representing UTC date in milliseconds')
+            elif key == 'due_date':
+                if not isinstance(val, int):
+                     raise TypeError('due_date element must be an integer representing UTC date in milliseconds')
+            
+        params = self.__get_params(locals())
+        del params['info']  # remove the info which is sent as the body
+
+        endpoint = 'sr'
+        return self.make_request('post', endpoint, params=params, body=info)
+    
+    def delete_sr(self, ids):
+        if isinstance(ids, (list, tuple)):
+            ids = ','.join(ids)
+        params = {'ids': ids}
+        endpoint = 'sr'
+        return self.make_request('delete', endpoint, params=params)
     
     def add_sr_link(self, id, name, link):
-        raise NotImplementedError
+        endpoint = f'sr/{id}/link'
+        payload = {'name': name, 'link': link}
+        return self.make_request('post', endpoint, body=payload)
     
     def delete_sr_link(self, id, name):
-        raise NotImplementedError
+        endpoint = f'sr/{id}/link'
+        payload = {'name': name}
+        return self.make_request('delete', endpoint, body=payload)
     
-    def add_sr_attachment(self, id, data):
-        raise NotImplementedError
+    def add_sr_attachment(self, id, file_path=None, file_data=None):
+        if file_path:
+            files = {'file': open(file_path, 'rb')}
+        else:
+            files = {'file': file_data}
+
+        endpoint = f'sr/{id}/attachment'
+        return self.make_request('post', endpoint, files=files)
     
     def delete_sr_attachment(self, id, file_id):
-        raise NotImplementedError
+        endpoint = f'sr/{id}/attachment'
+        payload = {'fileId': file_id}
+        return self.make_request('delete', endpoint, body=payload)
+    
+    def add_sr_activity(self, id, user_id: str, from_time: str, to_time: str, description:str):
+        payload = self.__get_params(locals())
+        del payload['id']
+        endpoint = f'sr/{id}/activity'
+        return self.make_request('post', endpoint, body=payload)
 
-    def delete_sr(self, ids):
-        raise NotImplementedError
+    def delete_sr_activity(self, id, activity_id):
+        payload = {'id': activity_id}
+        endpoint = f'sr/{id}/activity'
+        return self.make_request('delete', endpoint, body=payload)
     
-    def add_sr_activity(self, id, user_id, from_time, to_time, description):
-        raise NotImplementedError
-    
-    def send_sr_message(self, id, method, add_as_attachment, add_as_details, file_data, message_from_user_id, 
-                        message_to_users, message_cc_users, message_subject, message_body):
+    def send_sr_message(self, id, message_from_user_id, message_to_users, message_cc_users, message_subject, message_body, 
+                        method='email', file_path=None, add_details=True, add_attachment=True):
+        """
+        Sends a message using the method provided (defaults to email). 
+
+        The IDs of the users in the To and CC fields must be a comma-separated string, with users IDs. If there's a group, 
+        the group ID should be surrounded by [ ].
+
+        See documentation at: https://documentation.sysaid.com/docs/rest-api-details#send-message-from-service-request
+        """
         # TODO: implement a message object
-        raise NotImplementedError
+        params = {'method': method,
+                  'addAttachmentToSr': add_attachment,
+                  'addSrDetails': add_details}
+        endpoint = f'sr/{id}/message'
+        message = {
+            'fromUserId': message_from_user_id,
+            'toUsers': message_to_users,
+            'ccUsers': message_cc_users,
+            'msgSubject': message_subject,
+            'msgBody': message_body
+        }
+        payload = {
+            'message': message
+        }
+        files = None
+        if file_path:
+            files = {'file': open(file_path, 'rb')}
+
+        return self.make_request('post', endpoint, params=params, body=payload, files=files)
 
     def get_users_list(self, view=None, fields=None, type=None, offset=None, limit=None):
         params = {k: v for k, v in locals().items() if v is not None}
