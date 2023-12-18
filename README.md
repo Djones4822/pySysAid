@@ -16,8 +16,9 @@ You will need this! Note that the methods for each endpoint are not specified fo
 ## Todo:
 1. Finish implementing all endpoints
 2. Add tests for endpoint usage
-3. Implement SR Object for pythonic access
+3. ~~Implement SR Object for pythonic access~~
 4. Implement all other objects for pythonic access (expand later)
+5. Add field updating to SR Class
 
 ## Usage
 
