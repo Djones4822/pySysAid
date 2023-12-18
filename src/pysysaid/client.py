@@ -1,4 +1,6 @@
+from ast import Attribute
 import os
+from typing import List
 import requests
 import json
 import time
@@ -6,6 +8,8 @@ from urllib.parse import quote_plus
 import orjson
 import re
 from logging import getLogger
+
+from pysysaid.service_request import SRAttribute
 
 logger = getLogger(__name__)
 
@@ -141,10 +145,16 @@ class Client:
         endpoint = 'sr'
         return self.make_request('get', endpoint, params=params)
         
-    def update_sr(self, id, fields: dict):
+    def update_sr(self, id, info: List[dict|SRAttribute]):
         info_payload = []
-        for k,v in fields.items():
-            info_payload.append({'key':k, 'value':v})
+        for field in info:
+            if isinstance(field, SRAttribute):
+                info_payload.append({'key': field.key, 'value': field.value})
+            elif isinstance(field, dict):
+                info_payload.append({'key':field['key'], 'value':field['value']})
+            else:
+                TypeError(f'Info element must be a dict with keys `key` and `value` or an `SRAttribute`, not {type(field)}')
+
         payload =  {
           'id': id,
           'info': info_payload
