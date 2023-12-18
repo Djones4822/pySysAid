@@ -1,11 +1,13 @@
 from typing import Any
-from .client import Client
 from logging import getLogger
+from typing import TYPE_CHECKING, Any, Optional
+if TYPE_CHECKING:
+    from pysysaid.client import Client
 
 logger = getLogger(__name__)
 
 
-class Attribute:
+class SRAttribute:
     def __init__(self, data):
         self.__data = data
     
@@ -40,7 +42,7 @@ class Attribute:
     
 
 class ServiceRequest:
-    def __init__(self, id: int, can_update=True, can_delete=False, can_archive=False, has_children=False, info=[], client: Client|None =None):
+    def __init__(self, id: int, can_update=True, can_delete=False, can_archive=False, has_children=False, info=[], client: Optional['Client'] =None):
         self.__id = id
         self.__can_update = can_update
         self.__can_delete = can_delete
@@ -53,7 +55,7 @@ class ServiceRequest:
             logger.warning('No client provided, SR is read-only')
 
         for info_dict in info:
-            self.__info[info_dict['key']] = Attribute(info_dict)
+            self.__info[info_dict['key']] = SRAttribute(info_dict)
 
     def __getattribute__(self, __name: str) -> Any:
         "Fetches an attribute either from the class spec or from within the info body"
