@@ -1,6 +1,6 @@
 from ast import Attribute
 import os
-from typing import List
+from typing import List, Literal
 import requests
 import json
 import time
@@ -9,11 +9,12 @@ import orjson
 import re
 from logging import getLogger
 
-from pysysaid.service_request import SRAttribute
+from pysysaid.service_request import SRAttribute, ServiceRequest
 
 logger = getLogger(__name__)
 
 PROTOCOL_RE_PATTERN = r'^https?://'
+ENDPOINT_PARAM_IGNORE = ['self', 'format']
 
 class Client:
     """
@@ -51,7 +52,7 @@ class Client:
             self.login()
 
     def __get_params(self, params):
-        return {k: v for k, v in params.items() if v is not None and k != 'self'}
+        return {k: v for k, v in params.items() if v is not None and k not in ENDPOINT_PARAM_IGNORE}
     
     @property
     def cookie_path(self):
@@ -135,15 +136,40 @@ class Client:
             print(response.text)
             raise Exception('Could not make authorized request')
 
-    def get_sr(self, sr_id):
-        # TODO: Implement a Service Record Object
+    def get_sr(self, sr_id, format: Literal['dict', 'object'] = 'object') -> ServiceRequest|dict|None:
         endpoint = f'sr/{sr_id}'
-        return self.make_request('get', endpoint)
+        resp = self.make_request('get', endpoint)
+        if isinstance(resp, list):
+            if len(resp):
+                sr = resp[0]
+                if format == 'object':
+                    return ServiceRequest.from_response(sr)
+                else:
+                    return sr
 
-    def get_sr_list(self, view=None, fields=None, ids=None, type=None, offset=None, limit=None, filters=None, sort=None, dir=None):
+    def get_sr_list(self, view=None, fields=None, ids=None, type=None, offset=None, limit=None, filters=None, 
+                    sort=None, dir=None, format: Literal['dict', 'object'] = 'object') -> List[ServiceRequest|dict]|None:
         params = self.__get_params(locals())
         endpoint = 'sr'
-        return self.make_request('get', endpoint, params=params)
+        resp = self.make_request('get', endpoint, params=params)
+        if isinstance(resp, list):
+            if len(resp):
+                if format == 'object':
+                    return [ServiceRequest.from_response(sr) for sr in resp]
+                else:
+                    return resp
+    
+    def search_srs(self, query=None, view=None, fields=None, type=None, offset=None, limit=None, filters=None,
+                   sort=None, dir=None, format: Literal['dict', 'object'] = 'object') -> List[ServiceRequest|dict]|None:
+        params = self.__get_params(locals())
+        endpoint = f'sr/search'
+        resp = self.make_request('get', endpoint, params=params)
+        if isinstance(resp, list):
+            if len(resp):
+                if format == 'object':
+                    return [ServiceRequest.from_response(sr) for sr in resp]
+                else:
+                    return resp
         
     def update_sr(self, id, info: List[dict|SRAttribute]):
         info_payload = []
@@ -161,11 +187,6 @@ class Client:
         }
         endpoint = f'sr/{id}'
         return self.make_request('put', endpoint, body=payload)
-
-    def search_srs(self, query=None, view=None, fields=None, type=None, offset=None, limit=None, filters=None, sort=None, dir=None):
-        params = self.__get_params(locals())
-        endpoint = f'sr/search' 
-        return self.make_request('get', endpoint, params=params)
     
     def count_srs(self, filters=None):
         params = self.__get_params(locals())
@@ -184,15 +205,15 @@ class Client:
         endpoint = f"sr/template"
         return self.make_request('get', endpoint, params=params)
 
-    def create_sr(self, info, view=None, type='incident', template_id=None):
+    def create_sr(self, info, view=None, sr_type='incident', template_id=None, format: Literal['dict', 'object'] = 'object') -> ServiceRequest|dict:
         """
         Method for creating a service request. 
         
         See documentatin available at: https://documentation.sysaid.com/docs/rest-api-details#create-service-request
         """
         INFO_ERROR = 'info must be a list of dictionaries with `key` and `value` fields'
-        if type not in ('incident', 'request', 'problem', 'change', 'all'):
-            raise ValueError(f'SR type must be one of: incident, request, problem, change, or all. Not {type}')
+        if sr_type not in ('incident', 'request', 'problem', 'change', 'all'):
+            raise ValueError(f'SR type must be one of: incident, request, problem, change, or all. Not {sr_type}')
         if not isinstance(info, list):
             raise TypeError(INFO_ERROR)
         for i, data in enumerate(info):
@@ -218,7 +239,12 @@ class Client:
         del params['info']  # remove the info which is sent as the body
 
         endpoint = 'sr'
-        return self.make_request('post', endpoint, params=params, body=info)
+        resp = self.make_request('post', endpoint, params=params, body=info)
+        if isinstance(resp, dict):
+            if format == 'dict':
+                return resp
+            return ServiceRequest.from_response(resp)
+        raise TypeError(f'Unknown response type: {type(resp)}')
     
     def delete_sr(self, ids):
         if isinstance(ids, (list, tuple)):
