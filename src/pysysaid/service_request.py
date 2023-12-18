@@ -1,4 +1,3 @@
-from typing import Any
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, Optional
 if TYPE_CHECKING:
