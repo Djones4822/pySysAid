@@ -1,7 +1,7 @@
 # pySysAid
 Simple python library for interacting with the SysAid REST API. Exposes all the endpoint as methods within the client. Hope to one day create class objects for each data model (SR, Asset, CI, etc). 
 
-**Current Version**: 0.0.4
+**Current Version**: 0.0.5
 
 Have added placeholders for all documented client resources. All SR endpoints are implemented, many more to do. Ultimately the meat of the library will be within the actual objects, right now focusing on the client mostly. 
 
