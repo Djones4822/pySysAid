@@ -1,7 +1,7 @@
 # pySysAid
-Simple python library for interacting with the SysAid REST API.
+Simple python library for interacting with the SysAid REST API. Exposes all the endpoint as methods within the client. Hope to one day create class objects for each data model (SR, Asset, CI, etc). 
 
-**Current Version**: 0.0.3
+**Current Version**: 0.0.4
 
 Have added placeholders for all documented client resources. All SR endpoints are implemented, many more to do. Ultimately the meat of the library will be within the actual objects, right now focusing on the client mostly. 
 
@@ -11,7 +11,13 @@ There are some undocumented endpoints out there, one of which is `event_logs` th
 
 https://documentation.sysaid.com/docs/rest-api-details
 
-You will need this! Note that the methods for each endpoint are not specified for some reason, you'll have to interpret what the endpoint is doing to know which method you want. For example, retrieving any info is probably a `GET` request, updating an SR is probably a `PUT` request, and creating an SR is probably a `POST` request!
+You will need this! Note that the methods for each endpoint are not specified for some reason, I've had to interpret what the endpoint is doing to know which method. For example, retrieving any info is probably a `GET` request, updating an SR is probably a `PUT` request, and creating is probably a `POST` request.
+
+## Todo:
+1. Finish implementing all endpoints
+2. Add tests for endpoint usage
+3. Implement SR Object for pythonic access
+4. Implement all other objects for pythonic access (expand later)
 
 ## Usage
 
