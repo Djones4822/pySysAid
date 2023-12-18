@@ -1,9 +1,9 @@
 # pySysAid
 Simple python library for interacting with the SysAid REST API.
 
-**Current Version**: 0.0.2
+**Current Version**: 0.0.3
 
-Have added placeholders for all documented client resources. Very few are actually implemented, and ultimately the meat of the application will be once the actual objects are implemented, right now focusing on the client mostly. 
+Have added placeholders for all documented client resources. All SR endpoints are implemented, many more to do. Ultimately the meat of the library will be within the actual objects, right now focusing on the client mostly. 
 
 There are some undocumented endpoints out there, one of which is `event_logs` that I just found out about. If you know of any please let me know or submit a PR adding them. 
 
@@ -41,10 +41,10 @@ Once you have the client you can then use the few helper functions I've added, o
 ```python
 # Helper Functions:
 
-client.get_sr(sr_id=1)
+client.get_sr(id=1)
 client.get_sr_list(**kwargs)  # see the sysaid rest api documentation for valid fields
 client.search_srs(**kwargs)   # see the sysaid rest api documentation for valid fields
-client.update_fields(id=1, field_dict={'sr_status': 'Open'})  # see the sysaid rest api documentation for valid fields
+client.update_sr(id=1, field_dict={'sr_status': 'Open'})  # see the sysaid rest api documentation for valid fields
 
 # Or execute your own request
 client.make_request('get', 'sr/1')
