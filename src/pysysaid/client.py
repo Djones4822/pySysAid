@@ -50,6 +50,9 @@ class Client:
         if not self.cookies:
             self.login()
 
+    def __get_params(self, params):
+        return {k: v for k, v in params.items() if v is not None and k != 'self'}
+    
     @property
     def cookie_path(self):
         return self.__cookie_path
@@ -127,7 +130,7 @@ class Client:
         return self.make_request('get', endpoint)
 
     def get_sr_list(self, view=None, fields=None, ids=None, type=None, offset=None, limit=None, filters=None, sort=None, dir=None):
-        params = {k: v for k, v in locals().items() if v is not None}
+        params = self.__get_params(locals())
         endpoint = 'sr'
         return self.make_request('get', endpoint, params=params)
         
@@ -143,7 +146,7 @@ class Client:
         return self.make_request('put', endpoint, body=payload)
 
     def search_srs(self, query=None, view=None, fields=None, type=None, offset=None, limit=None, filters=None, sort=None, dir=None):
-        params = {k: v for k, v in locals().items() if v is not None}
+        params = self.__get_params(locals())
         endpoint = f'sr/search' 
         return self.make_request('get', endpoint, params=params)
     
