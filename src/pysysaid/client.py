@@ -14,7 +14,7 @@ from pysysaid.service_request import SRAttribute, ServiceRequest
 logger = getLogger(__name__)
 
 PROTOCOL_RE_PATTERN = r'^https?://'
-ENDPOINT_PARAM_IGNORE = ['self', 'format']
+ENDPOINT_PARAM_IGNORE = ['self', 'format', 'info']
 
 class Client:
     """
@@ -236,7 +236,6 @@ class Client:
                      raise TypeError('due_date element must be an integer representing UTC date in milliseconds')
             
         params = self.__get_params(locals())
-        del params['info']  # remove the info which is sent as the body
 
         endpoint = 'sr'
         resp = self.make_request('post', endpoint, params=params, body=info)
