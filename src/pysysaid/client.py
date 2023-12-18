@@ -146,36 +146,7 @@ class Client:
         params = {k: v for k, v in locals().items() if v is not None}
         endpoint = f'sr/search' 
         return self.make_request('get', endpoint, params=params)
-
-    def get_users_list(self, view=None, fields=None, type=None, offset=None, limit=None):
-        params = {k: v for k, v in locals().items() if v is not None}
-        endpoint = f'users' 
-        return self.make_request('get', endpoint, params=params)
-
-    def get_user(self, id, view=None, fields=None):
-        # TODO: implement a user object
-        params = {k: v for k, v in locals().items() if v is not None}
-        endpoint = f'users/{id}' 
-        return self.make_request('get', endpoint, params=params)
-
-    def search_users(self, query=None, view=None, fields=None, type=None, offset=None, limit=None, sort=None, dir=None):
-        raise NotImplementedError
-
-    def get_user_photo(self, user_id):
-        raise NotImplementedError
-
-    def upload_user_photo(self, user_id, photo):
-        raise NotImplementedError
-
-    def get_user_permissions(self, user_id):
-        raise NotImplementedError
     
-    def get_filters_list(self, view=None, fields=None, offset=None, limit=None):
-        raise NotImplementedError
-
-    def get_filter(self, id, view=None, offset=None, limit=None):
-        raise NotImplementedError
-
     def count_srs(self, filters=None):
         raise NotImplementedError
 
@@ -211,6 +182,35 @@ class Client:
     def send_sr_message(self, id, method, add_as_attachment, add_as_details, file_data, message_from_user_id, 
                         message_to_users, message_cc_users, message_subject, message_body):
         # TODO: implement a message object
+        raise NotImplementedError
+
+    def get_users_list(self, view=None, fields=None, type=None, offset=None, limit=None):
+        params = {k: v for k, v in locals().items() if v is not None}
+        endpoint = f'users' 
+        return self.make_request('get', endpoint, params=params)
+
+    def get_user(self, id, view=None, fields=None):
+        # TODO: implement a user object
+        params = {k: v for k, v in locals().items() if v is not None}
+        endpoint = f'users/{id}' 
+        return self.make_request('get', endpoint, params=params)
+
+    def search_users(self, query=None, view=None, fields=None, type=None, offset=None, limit=None, sort=None, dir=None):
+        raise NotImplementedError
+
+    def get_user_photo(self, user_id):
+        raise NotImplementedError
+
+    def upload_user_photo(self, user_id, photo):
+        raise NotImplementedError
+
+    def get_user_permissions(self, user_id):
+        raise NotImplementedError
+    
+    def get_filters_list(self, view=None, fields=None, offset=None, limit=None):
+        raise NotImplementedError
+
+    def get_filter(self, id, view=None, offset=None, limit=None):
         raise NotImplementedError
     
     def get_action_items(self, view=None, fields=None, type=None, archive=None, ids=None, 
