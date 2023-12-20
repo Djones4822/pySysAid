@@ -1,6 +1,5 @@
-from ast import Attribute
 import os
-from typing import List, Literal
+from typing import Any, List, Literal
 import requests
 import json
 import time
@@ -9,7 +8,7 @@ import orjson
 import re
 from logging import getLogger
 
-from pysysaid.service_request import SRAttribute, ServiceRequest
+from pysysaid.service_request import ServiceRequest
 
 logger = getLogger(__name__)
 
@@ -103,7 +102,7 @@ class Client:
         if params:
             req_params['params'] = params
         if body:
-            req_params['body'] = body
+            req_params['body'] = orjson.dumps(body)
         if files:
             req_params['files'] = files
 
@@ -171,19 +170,17 @@ class Client:
                 else:
                     return resp
         
-    def update_sr(self, id, info: List[dict|SRAttribute]):
-        info_payload = []
+    def update_sr(self, id, info: List[dict[str, Any]]):
         for field in info:
-            if isinstance(field, SRAttribute):
-                info_payload.append({'key': field.key, 'value': field.value})
-            elif isinstance(field, dict):
-                info_payload.append({'key':field['key'], 'value':field['value']})
+            if isinstance(field, dict):
+                if 'key' not in field.keys() or 'value' not in field.keys(): 
+                    KeyError(f'Field dictionary must contain keys "key" and "value", {field.keys()}')
             else:
                 TypeError(f'Info element must be a dict with keys `key` and `value` or an `SRAttribute`, not {type(field)}')
 
         payload =  {
           'id': id,
-          'info': info_payload
+          'info': info
         }
         endpoint = f'sr/{id}'
         return self.make_request('put', endpoint, body=payload)
